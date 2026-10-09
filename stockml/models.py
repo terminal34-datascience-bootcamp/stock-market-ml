@@ -150,10 +150,12 @@ def save_bundle(bundle, sample):
     folder = root() / 'models'
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{bundle['experiment']}.joblib"
-    joblib.dump(bundle, path)
-    loaded = joblib.load(path)  # Only load this workflow's own trusted local artifacts.
+    temporary = path.with_suffix('.joblib.tmp')
+    joblib.dump(bundle, temporary)
+    loaded = joblib.load(temporary)  # Only load this workflow's own trusted local artifacts.
     pd.testing.assert_frame_equal(infer(bundle, sample), infer(loaded, sample), check_exact=True)
     save_json(path.with_suffix('.json'), {key: value for key, value in bundle.items() if key != 'models'})
+    temporary.replace(path)  # A runtime interruption must not leave a reusable half-written model.
     return path
 
 

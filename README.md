@@ -2,7 +2,29 @@
 
 Three notebooks implement chronological Random Forest/XGBoost experiments, a 2024–2025 assignment test, and a separately frozen 2026 competition holdout. The repository includes shared, tested Python code; keep `stockml/` beside the notebooks.
 
-## Setup and run
+## Run in Google Colab
+
+Open these notebooks in order; choose a **Python 3 CPU runtime** (no GPU required):
+
+| Step | Notebook |
+|---|---|
+| 1. Download and preprocess | [Open in Colab](https://colab.research.google.com/github/terminal34-datascience-bootcamp/stock-market-ml/blob/main/01_data_preprocessing.ipynb) |
+| 2. Train and predict | [Open in Colab](https://colab.research.google.com/github/terminal34-datascience-bootcamp/stock-market-ml/blob/main/02_training_inference.ipynb) |
+| 3. Evaluate portfolios | [Open in Colab](https://colab.research.google.com/github/terminal34-datascience-bootcamp/stock-market-ml/blob/main/03_portfolio_evaluation.ipynb) |
+
+In each notebook, run the setup cell, authorize Google Drive, then run the remaining cells. Keep `EXPERIMENT_NAME = 'competition-v1'` and `COLAB_SMOKE_TEST = False` identical across all three. Set the smoke flag to `True` in all three for a fast synthetic trial instead.
+
+**This GitHub repository is private.** In Colab's Secrets panel (key icon), add `GITHUB_TOKEN` and enable notebook access in each notebook. Use a fine-grained GitHub token with **Contents: Read-only** permission for this repository; the organization may need to approve it. The token is passed through a Git child-process environment, never stored in notebook cells, artifacts, or remote URLs. Without access, setup stops with instructions. If Colab cannot open the private GitHub notebook link, download the notebook from GitHub and use Colab's **Upload** tab instead; the secret is still needed to download the shared code. [GitHub fine-grained token instructions](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+
+Setup automatically downloads the shared Python code and installs `requirements-colab.txt`. The first notebook saves its Git revision, Python version, and resolved package versions; subsequent sessions reuse that source revision and install those exact package versions. If pip changed an already-imported package, setup explicitly asks you to restart the session and rerun the setup cell. Do not install the macOS-generated `requirements-lock.txt` in Colab.
+
+Artifacts are written directly to `My Drive/stock-market-ml/competition-v1/real/` (or `smoke/`). This folder is the handoff between independent notebook sessions. Finish each notebook before starting the next, and do not run two notebooks against the same experiment folder concurrently. Notebook 2 may take several minutes or longer. Completed frozen model bundles can be reused after a reset; an interrupted, unfinished fitting stage may need to run again. Temporary model/metadata files are promoted only after successful writes.
+
+Use **File → Save a copy in Drive** to retain notebook edits and displayed outputs; artifact persistence does not save the notebook itself. Colab runtimes are temporary, which is why the workflow mounts Drive for persistent files. [Google Colab FAQ](https://research.google.com/colaboratory/faq.html)
+
+Local artifacts are not uploaded automatically. The existing 2026 results have already been evaluated locally: rerunning on Colab is a reproduction, not another independent holdout. Keep the experimental choices fixed. Avoid changing the experiment name to try alternatives against 2026.
+
+## Local setup and run
 
 Python 3.11–3.13 is recommended. From this directory:
 

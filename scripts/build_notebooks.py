@@ -13,17 +13,15 @@ def code(text):
     return nbf.v4.new_code_cell(text.strip())
 
 
-SETUP = '''
-from pathlib import Path
-import os
-import sys
+BOOTSTRAP = (ROOT / 'scripts' / 'colab_setup.py').read_text()
 
-# Launch from the repository root. All handoffs are explicit disk artifacts.
-PROJECT = Path.cwd()
-if not (PROJECT / 'stockml').is_dir():
-    raise RuntimeError('Open this notebook with the repository root as the working directory.')
-sys.path.insert(0, str(PROJECT))
-os.environ.setdefault('MPLCONFIGDIR', str(PROJECT / '.cache' / 'matplotlib'))
+
+def setup(number):
+    return ('''# Use the SAME values in all three Colab notebooks.
+EXPERIMENT_NAME = 'competition-v1'
+COLAB_SMOKE_TEST = False  # True = synthetic data and small models, stored separately.
+
+''' + BOOTSTRAP + f'\nPROJECT = setup_notebook({number}, EXPERIMENT_NAME, COLAB_SMOKE_TEST)\n' + '''
 import pandas as pd
 from IPython.display import display, Markdown
 from stockml.common import root, smoke, load_json
@@ -31,6 +29,18 @@ from stockml.common import root, smoke, load_json
 pd.set_option('display.max_columns', 20)
 print('Artifacts:', root())
 print('SYNTHETIC SMOKE TEST — NOT FINANCIAL RESULTS' if smoke() else 'REAL-DATA EXPERIMENT')
+''')
+
+
+COLAB_GUIDE = '''## Run locally or in Google Colab
+
+In Colab, select a **Python 3 CPU runtime**, then run the setup cell below and authorize its Google Drive mount. It loads the shared code from GitHub and installs the runtime dependencies. Use the same `EXPERIMENT_NAME` and `COLAB_SMOKE_TEST` values in notebooks **1 → 2 → 3**; each can run in a separate session. Your datasets, models, predictions, and frozen selection are saved directly under `My Drive/stock-market-ml/<experiment>/real/` (or `smoke/`), so they survive runtime resets. Save a notebook copy to Drive if you want to keep your notes and cell outputs too.
+
+**Private GitHub repository:** add a `GITHUB_TOKEN` in Colab's Secrets panel (key icon), using a fine-grained token with **Contents: Read-only** access to this repository, and enable notebook access in each notebook. Organization approval may be required. Do not paste the token into a code cell. Setup passes it only to Git subprocesses and does not save it in artifacts or Git remote URLs. If Colab cannot open the private GitHub link, download the `.ipynb` from GitHub and upload it to Colab; the same secret enables the code download.
+
+The first notebook records a Git commit and exact package versions; later notebooks reuse them. If setup asks for a runtime restart after installing packages, restart the session and rerun setup. Run one notebook at a time for a given experiment. A missing-handoff error means you need to finish the preceding notebook with the same settings. On a local machine, setup preserves your environment and artifact path; install `requirements.txt` first.
+
+Changing the experiment folder after seeing 2026 results does not restore holdout independence. To try this Colab port without revisiting the real holdout, set `COLAB_SMOKE_TEST=True` in all three notebooks. Your existing local artifacts are not uploaded automatically.
 '''
 
 notebooks = {
@@ -43,7 +53,8 @@ Use 2015–2021 for training and 2022–2023 for validation. Preserve 2024–202
 
 Run the three notebooks in numerical order, each in a fresh kernel. Install `requirements.txt` and select that environment. Shared, tested implementations are in `stockml/`; retain that folder with the notebooks. Normal runs download real data. The automated smoke runner explicitly uses deterministic synthetic data and reduced models.
 '''),
-        code(SETUP),
+        md(COLAB_GUIDE),
+        code(setup(1)),
         md('''## Acquire and lock a reproducible snapshot
 
 `AS_OF=None` uses the latest available session through yesterday in New York, capped at December 2026. The current day is conservatively excluded. A cached snapshot is verified and reused, not silently refreshed. To intentionally acquire another snapshot, use a different `STOCK_ML_ARTIFACTS` directory; changing snapshots after inspecting results does not restore holdout independence.
@@ -102,7 +113,8 @@ This notebook owns all model fitting and prediction generation. It first complet
 
 The assignment refit uses complete outcomes before January 2024. The separate competition refit uses complete outcomes before January 2026. No 2026 row enters fitting, tuning, risk thresholds, feature importance, or strategy selection.
 '''),
-        code(SETUP),
+        md(COLAB_GUIDE),
+        code(setup(2)),
         md('''## Development protocol and bounded search
 
 Split all stocks by calendar date, not stacked row number. Drop any training row whose target reaches the next period. Validation scoring excludes targets realized in 2024. Return models minimize validation RMSE; risk models maximize ROC-AUC.
@@ -175,7 +187,8 @@ No inference code in Notebook 3 refits these models. Continue there for portfoli
 
 Load the saved predictions and frozen selection. This notebook does not train models or choose a new competition entry. Report the assignment and competition experiments separately.
 '''),
-        code(SETUP),
+        md(COLAB_GUIDE),
+        code(setup(3)),
         code('''from stockml.models import check_frozen
 frozen = check_frozen()
 display(pd.Series(frozen['selected_entry']))
@@ -234,9 +247,11 @@ Before submission, run `python -m pytest -q`, inspect these calculations yoursel
 }
 
 for name, cells in notebooks.items():
+    cells[0].source += ('\n\n[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]'
+                        f'(https://colab.research.google.com/github/terminal34-datascience-bootcamp/stock-market-ml/blob/main/{name})')
     notebook = nbf.v4.new_notebook(cells=cells)
     notebook.metadata = {'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'},
-                         'language_info': {'name': 'python', 'version': '3.13'}}
+                         'language_info': {'name': 'python'}, 'colab': {'name': name, 'provenance': []}}
     nbf.validate(notebook)
     nbf.write(notebook, ROOT / name)
     print(name)

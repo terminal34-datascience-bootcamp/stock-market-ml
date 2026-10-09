@@ -51,7 +51,9 @@ def identifier(obj) -> str:
 
 def save_json(path: Path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2, sort_keys=True, default=str) + '\n')
+    temporary = path.with_suffix(path.suffix + '.tmp')
+    temporary.write_text(json.dumps(obj, indent=2, sort_keys=True, default=str) + '\n')
+    temporary.replace(path)
 
 
 def load_json(path: Path):
